@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dave A. Mantilla — Writer & Developer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Playfair Display"', 'serif'],
+            mono:    ['"DM Mono"', 'monospace'],
+            body:    ['"DM Sans"', 'sans-serif'],
+          },
+          colors: {
+            cream:  '#F5F0E8',
+            ink:    '#1A1612',
+            rust:   '#C0502A',
+            muted:  '#7A6F65',
+            border: '#D9D0C4',
+          },
+          animation: {
+            'fade-up':   'fadeUp 0.7s ease forwards',
+            'fade-in':   'fadeIn 0.5s ease forwards',
+            'underline': 'lineGrow 0.3s ease forwards',
+          },
+          keyframes: {
+            fadeUp:  { '0%': { opacity: '0', transform: 'translateY(24px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            fadeIn:  { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            lineGrow:{ '0%': { width: '0%' }, '100%': { width: '100%' } },
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #f3cf96; color: #1A1612; }
+
+    /* staggered reveal */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* animated nav underline */
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: ''; position: absolute; left: 0; bottom: -2px;
+      height: 1px; width: 0; background: #C0502A;
+      transition: width 0.3s ease;
+    }
+    .nav-link:hover::after { width: 100%; }
+
+    /* blog card hover */
+    .card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(26,22,18,0.10); }
+
+    /* grain overlay */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      opacity: 0.4;
+    }
+
+    /* horizontal rule accent */
+    .rule { border: none; border-top: 1px solid #D9D0C4; }
+
+    /* tag pill */
+    .tag {
+      font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.05em;
+      background: khaki; color: #7A6F65; padding: 2px 10px; border-radius: 999px;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: khaki; border-radius: 3px; }
+  </style>
+</head>
+<body class="font-body antialiased">
+
+  <!-- ───────── NAVBAR ───────── -->
+  <header class="sticky top-0 z-40 bg-cream/90 backdrop-blur-md border-b border-border">
+    <nav class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#" class="font-display text-xl font-bold tracking-tight text-ink">
+        Dave A. Mantilla<span class="text-rust">.</span>
+      </a>
+      <ul class="hidden md:flex gap-8 text-sm font-medium text-muted">
+        <li><a href="#about"   class="nav-link hover:text-ink transition-colors">About</a></li>
+        <li><a href="#blog"    class="nav-link hover:text-ink transition-colors">Writing</a></li>
+        <li><a href="#projects"class="nav-link hover:text-ink transition-colors">Projects</a></li>
+        <li><a href="#contact" class="nav-link hover:text-ink transition-colors">Contact</a></li>
+      </ul>
+      <a href="#contact"
+         class="hidden md:inline-block text-xs font-mono tracking-widest uppercase border border-rust text-rust px-4 py-2 hover:bg-rust hover:text-cream transition-all duration-300">
+        Say Hello
+      </a>
+      <!-- mobile hamburger -->
+      <button id="menuBtn" class="md:hidden text-ink" aria-label="Menu">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/>
+        </svg>
+      </button>
+    </nav>
+    <!-- mobile menu -->
+    <div id="mobileMenu" class="hidden md:hidden px-6 pb-4 flex flex-col gap-4 text-sm font-medium text-muted border-t border-border pt-4">
+      <a href="#about"    class="hover:text-rust transition-colors">About</a>
+      <a href="#blog"     class="hover:text-rust transition-colors">Writing</a>
+      <a href="#projects" class="hover:text-rust transition-colors">Projects</a>
+      <a href="#contact"  class="hover:text-rust transition-colors">Contact</a>
+    </div>
+  </header>
+
+  <!-- ───────── HERO ───────── -->
+  <section class="max-w-5xl mx-auto px-6 pt-24 pb-20 md:pt-36 md:pb-28">
+    <div class="reveal">
+      <span class="font-mono text-xs tracking-[0.2em] text-rust uppercase">Writer · Developer · Thinker</span>
+    </div>
+    <h1 class="reveal font-display text-5xl md:text-7xl font-bold leading-tight mt-4 mb-6"
+        style="transition-delay:0.1s">
+      Ideas worth<br/>
+      <em class="italic text-rust">writing down.</em>
+    </h1>
+    <p class="reveal max-w-xl text-muted text-lg leading-relaxed mb-10" style="transition-delay:0.2s">
+      I explore the intersection of technology, craft, and culture — one essay at a time.
+      Based in the Philippines, writing for the world.
+    </p>
+    <div class="reveal flex flex-wrap gap-4" style="transition-delay:0.3s">
+      <a href="#blog"
+         class="bg-ink text-cream text-sm font-medium px-6 py-3 hover:bg-rust transition-colors duration-300">
+        Read My Writing
+      </a>
+      <a href="#about"
+         class="border border-border text-ink text-sm font-medium px-6 py-3 hover:border-ink transition-colors duration-300">
+        About Me
+      </a>
+    </div>
+
+    <!-- decorative line -->
+    <div class="reveal mt-20 flex items-center gap-6" style="transition-delay:0.4s">
+      <div class="flex-1 rule"></div>
+      <span class="font-mono text-xs text-muted tracking-widest">EST. 2025</span>
+      <div class="flex-1 rule"></div>
+    </div>
+  </section>
+
+  <!-- ───────── ABOUT ───────── -->
+  <section id="about" class="max-w-5xl mx-auto px-6 py-20">
+    <div class="grid md:grid-cols-2 gap-16 items-center">
+      <!-- image block -->
+      <div class="reveal order-2 md:order-1">
+        <div class="relative">
+          <div class="w-full aspect-[4/5] bg-gradient-to-br from-[#D4C8B8] to-[#A8997F] flex items-end p-6 overflow-hidden">
+            <!-- abstract portrait placeholder -->
+            <div class="absolute inset-0 flex items-center justify-center">
+              <svg viewBox="0 0 200 240" class="w-48 opacity-20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="80" r="48" fill="#1A1612"/>
+                <ellipse cx="100" cy="200" rx="72" ry="56" fill="#1A1612"/>
+              </svg>
+            </div>
+            <div class="relative z-10">
+              <p class="font-mono text-xs text-cream/70 tracking-widest uppercase">Photo</p>
+              <p class="font-display text-cream text-lg font-bold">Alex Reyes</p>
+            </div>
+          </div>
+          <!-- accent square -->
+          <div class="absolute -bottom-4 -right-4 w-24 h-24 border-2 border-rust -z-10"></div>
+        </div>
+      </div>
+
+      <!-- text block -->
+      <div class="reveal order-1 md:order-2" style="transition-delay:0.15s">
+        <span class="font-mono text-xs tracking-[0.2em] text-rust uppercase">About Me</span>
+        <h2 class="font-display text-3xl md:text-4xl font-bold mt-3 mb-6 leading-snug">
+          Curious by nature,<br/>deliberate by practice.
+        </h2>
+        <div class="space-y-4 text-muted leading-relaxed">
+          <p>I'm a developer and writer based in Zamboanga, Philippines. I believe the best technology is built when engineers can also <em>communicate</em> — clearly and beautifully.</p>
+          <p>On this blog I publish essays on web development, creative process, and the philosophy of building things that last.</p>
+        </div>
+        <div class="mt-8 flex flex-wrap gap-2">
+          <span class="tag">JavaScript</span>
+          <span class="tag">Design Systems</span>
+          <span class="tag">Philosophy</span>
+          <span class="tag">Open Source</span>
+          <span class="tag">Minimalism</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule max-w-5xl mx-auto mx-6"/>
+
+  <!-- ───────── BLOG ───────── -->
+  <section id="blog" class="max-w-5xl mx-auto px-6 py-20">
+    <div class="reveal flex items-end justify-between mb-12">
+      <div>
+        <span class="font-mono text-xs tracking-[0.2em] text-rust uppercase">Latest Writing</span>
+        <h2 class="font-display text-3xl md:text-4xl font-bold mt-2">Recent Essays</h2>
+      </div>
+      <a href="#" class="hidden md:flex items-center gap-2 text-sm text-muted hover:text-rust transition-colors font-mono">
+        All posts
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
+        </svg>
+      </a>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8">
+      <!-- Card 1 — featured -->
+      <article class="card reveal md:col-span-2 bg-ink text-cream p-8 flex flex-col justify-between min-h-[320px]">
+        <div>
+          <div class="flex items-center gap-3 mb-6">
+            <span class="tag bg-rust/20 text-rust">Featured</span>
+            <span class="font-mono text-xs text-cream/40">May 20, 2025</span>
+          </div>
+          <h3 class="font-display text-2xl md:text-3xl font-bold leading-snug mb-4">
+            The Quiet Art of Writing Software Nobody Notices
+          </h3>
+          <p class="text-cream/60 leading-relaxed text-sm">
+            Great infrastructure is invisible. So is great prose. What plumbing and poetry share — and why it matters for how we build.
+          </p>
+        </div>
+        <a href="#" class="mt-8 inline-flex items-center gap-2 text-rust text-sm font-mono hover:gap-4 transition-all">
+          Read essay <span>→</span>
+        </a>
+      </article>
+
+      <!-- Card 2 -->
+      <article class="card reveal border border-border p-6 flex flex-col justify-between" style="transition-delay:0.1s">
+        <div>
+          <div class="flex items-center gap-2 mb-4">
+            <span class="tag">Dev</span>
+            <span class="font-mono text-xs text-muted">May 12, 2025</span>
+          </div>
+          <h3 class="font-display text-xl font-bold leading-snug mb-3">
+            Tailwind Is Not a Framework. It's a Philosophy.
+          </h3>
+          <p class="text-muted text-sm leading-relaxed">Utility-first CSS forces you to think in constraints — and constraints breed creativity.</p>
+        </div>
+        <a href="#" class="mt-6 inline-flex items-center gap-2 text-rust text-sm font-mono hover:gap-4 transition-all">
+          Read <span>→</span>
+        </a>
+      </article>
+
+      <!-- Card 3 -->
+      <article class="card reveal border border-border p-6 flex flex-col justify-between" style="transition-delay:0.15s">
+        <div>
+          <div class="flex items-center gap-2 mb-4">
+            <span class="tag">Process</span>
+            <span class="font-mono text-xs text-muted">Apr 30, 2025</span>
+          </div>
+          <h3 class="font-display text-xl font-bold leading-snug mb-3">
+            On Finishing Things: A Manifesto Against Perpetual Drafts
+          </h3>
+          <p class="text-muted text-sm leading-relaxed">Done is better than perfect. But what does done even mean?</p>
+        </div>
+        <a href="#" class="mt-6 inline-flex items-center gap-2 text-rust text-sm font-mono hover:gap-4 transition-all">
+          Read <span>→</span>
+        </a>
+      </article>
+
+      <!-- Card 4 -->
+      <article class="card reveal border border-border p-6 flex flex-col justify-between md:col-span-2" style="transition-delay:0.2s">
+        <div>
+          <div class="flex items-center gap-2 mb-4">
+            <span class="tag">Culture</span>
+            <span class="font-mono text-xs text-muted">Apr 15, 2025</span>
+          </div>
+          <h3 class="font-display text-xl font-bold leading-snug mb-3">
+            Why Slow Websites Are a Political Act
+          </h3>
+          <p class="text-muted text-sm leading-relaxed">
+            Bloated pages exclude billions. Choosing performance is choosing equity — and it starts with a single decision at your keyboard.
+          </p>
+        </div>
+        <a href="#" class="mt-6 inline-flex items-center gap-2 text-rust text-sm font-mono hover:gap-4 transition-all">
+          Read <span>→</span>
+        </a>
+      </article>
+    </div>
+  </section>
+
+  <hr class="rule max-w-5xl mx-auto mx-6"/>
+
+  <!-- ───────── PROJECTS ───────── -->
+  <section id="projects" class="max-w-5xl mx-auto px-6 py-20">
+    <div class="reveal mb-12">
+      <span class="font-mono text-xs tracking-[0.2em] text-rust uppercase">Work</span>
+      <h2 class="font-display text-3xl md:text-4xl font-bold mt-2">Selected Projects</h2>
+    </div>
+
+    <div class="space-y-0">
+      <!-- project row -->
+      <div class="reveal project-row group grid md:grid-cols-[1fr_auto] items-center border-t border-border py-6 gap-4 hover:bg-ink/[0.02] transition-colors px-2 -mx-2">
+        <div>
+          <div class="flex items-center gap-3 mb-1">
+            <span class="w-2 h-2 rounded-full bg-rust"></span>
+            <h3 class="font-display text-lg font-bold">Typewright</h3>
+            <span class="tag">Open Source</span>
+          </div>
+          <p class="text-muted text-sm ml-5">A distraction-free Markdown editor built with Vite + CodeMirror. Focus mode, word goals, export to PDF.</p>
+        </div>
+        <a href="#" class="ml-5 md:ml-0 font-mono text-xs text-rust border border-rust/40 px-4 py-2 hover:bg-rust hover:text-cream transition-all">
+          View →
+        </a>
+      </div>
+
+      <div class="reveal project-row group grid md:grid-cols-[1fr_auto] items-center border-t border-border py-6 gap-4 hover:bg-ink/[0.02] transition-colors px-2 -mx-2" style="transition-delay:0.1s">
+        <div>
+          <div class="flex items-center gap-3 mb-1">
+            <span class="w-2 h-2 rounded-full bg-rust"></span>
+            <h3 class="font-display text-lg font-bold">Paleta</h3>
+            <span class="tag">Design Tool</span>
+          </div>
+          <p class="text-muted text-sm ml-5">Accessible color palette generator. Checks WCAG contrast ratios on the fly and exports Tailwind config.</p>
+        </div>
+        <a href="#" class="ml-5 md:ml-0 font-mono text-xs text-rust border border-rust/40 px-4 py-2 hover:bg-rust hover:text-cream transition-all">
+          View →
+        </a>
+      </div>
+
+      <div class="reveal project-row group grid md:grid-cols-[1fr_auto] items-center border-t border-b border-border py-6 gap-4 hover:bg-ink/[0.02] transition-colors px-2 -mx-2" style="transition-delay:0.2s">
+        <div>
+          <div class="flex items-center gap-3 mb-1">
+            <span class="w-2 h-2 rounded-full bg-rust"></span>
+            <h3 class="font-display text-lg font-bold">ReadMap</h3>
+            <span class="tag">Personal</span>
+          </div>
+          <p class="text-muted text-sm ml-5">A visual reading tracker that maps your books to an interactive world map by author origin.</p>
+        </div>
+        <a href="#" class="ml-5 md:ml-0 font-mono text-xs text-rust border border-rust/40 px-4 py-2 hover:bg-rust hover:text-cream transition-all">
+          View →
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── NEWSLETTER ───────── -->
+  <section class="bg-ink text-cream">
+    <div class="max-w-5xl mx-auto px-6 py-20 reveal">
+      <div class="max-w-xl">
+        <span class="font-mono text-xs tracking-[0.2em] text-rust uppercase">Newsletter</span>
+        <h2 class="font-display text-3xl md:text-4xl font-bold mt-3 mb-4">
+          Essays in your inbox,<br/>twice a month.
+        </h2>
+        <p class="text-cream/60 mb-8 leading-relaxed">No noise. No sponsors. Just writing worth your time.</p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input type="email" placeholder="your@email.com"
+                 class="flex-1 bg-white/10 border border-white/20 text-cream placeholder:text-cream/30 px-4 py-3 text-sm focus:outline-none focus:border-rust transition-colors font-mono"/>
+          <button class="bg-rust text-cream text-sm font-medium px-6 py-3 hover:bg-rust/80 transition-colors whitespace-nowrap">
+            Subscribe →
+          </button>
+        </div>
+        <p class="text-cream/30 text-xs mt-3 font-mono">No spam. Unsubscribe anytime.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── CONTACT ───────── -->
+  <section id="contact" class="max-w-5xl mx-auto px-6 py-20">
+    <div class="reveal text-center max-w-lg mx-auto">
+      <span class="font-mono text-xs tracking-[0.2em] text-rust uppercase">Get in Touch</span>
+      <h2 class="font-display text-3xl md:text-4xl font-bold mt-3 mb-4">Let's talk.</h2>
+      <p class="text-muted leading-relaxed mb-8">
+        Whether it's a project collaboration, a guest post, or just a good conversation — my inbox is open.
+      </p>
+      <a href="mailto:hello@alexreyes.dev"
+         class="inline-block bg-rust text-cream text-sm font-medium px-8 py-4 hover:bg-ink transition-colors duration-300">
+        hello@alexreyes.dev
+      </a>
+      <div class="mt-10 flex items-center justify-center gap-6 text-muted">
+        <a href="#" class="font-mono text-xs hover:text-rust transition-colors tracking-widest uppercase">Twitter</a>
+        <span class="text-border">·</span>
+        <a href="#" class="font-mono text-xs hover:text-rust transition-colors tracking-widest uppercase">GitHub</a>
+        <span class="text-border">·</span>
+        <a href="#" class="font-mono text-xs hover:text-rust transition-colors tracking-widest uppercase">LinkedIn</a>
+        <span class="text-border">·</span>
+        <a href="#" class="font-mono text-xs hover:text-rust transition-colors tracking-widest uppercase">RSS</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── FOOTER ───────── -->
+  <footer class="border-t border-border">
+    <div class="max-w-5xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono text-muted">
+      <span>© 2025 Alex Reyes. All rights reserved.</span>
+      <span class="flex items-center gap-1">
+        Built with
+        <svg class="w-3 h-3 text-rust mx-1" fill="currentColor" viewBox="0 0 20 20"><path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/></svg>
+        HTML · Tailwind CSS
+      </span>
+    </div>
+  </footer>
+
+  <!-- ───────── JS: scroll reveal + mobile menu ───────── -->
+  <script>
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('visible'), 60);
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Mobile menu toggle
+    const btn  = document.getElementById('menuBtn');
+    const menu = document.getElementById('mobileMenu');
+    btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+
+    // Close mobile menu on link click
+    menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.add('hidden')));
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+      });
+    });
+  </script>
+</body>
+</html>
