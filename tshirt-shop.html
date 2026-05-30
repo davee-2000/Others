@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DRIP — Premium Tee Shop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;1,400&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Bebas Neue"', 'sans-serif'],
+            condensed: ['"Barlow Condensed"', 'sans-serif'],
+            body: ['Barlow', 'sans-serif'],
+          },
+          colors: {
+            base:   '#F2EDE6',
+            ink:    '#111111',
+            red:    '#E02020',
+            muted:  '#8A8480',
+            card:   '#ECEAE4',
+            border: '#D4CFC8',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #F2EDE6; color: #111111; cursor: none; }
+
+    /* Custom cursor */
+    #cursor {
+      width: 12px; height: 12px;
+      background: #E02020; border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9999;
+      transform: translate(-50%,-50%);
+      transition: transform 0.1s ease, width 0.2s ease, height 0.2s ease, background 0.2s ease;
+    }
+    #cursor.hovered { width: 40px; height: 40px; background: rgba(224,32,32,0.2); border: 2px solid #E02020; }
+    a, button { cursor: none; }
+
+    /* Marquee ticker */
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee-inner { display: flex; animation: marquee 18s linear infinite; width: max-content; }
+    .marquee-inner:hover { animation-play-state: paused; }
+
+    /* Reveal */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.65s ease, transform 0.65s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* Card hover */
+    .prod-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .prod-card:hover { transform: translateY(-6px); box-shadow: 0 24px 60px rgba(0,0,0,0.14); }
+    .prod-card:hover .quick-add { opacity: 1; transform: translateY(0); }
+    .quick-add { opacity: 0; transform: translateY(8px); transition: opacity 0.25s ease, transform 0.25s ease; }
+
+    /* Size selector */
+    .size-btn { transition: all 0.2s ease; }
+    .size-btn:hover, .size-btn.active { background: #111111; color: #F2EDE6; }
+
+    /* Cart slide */
+    #cart-panel { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); }
+    #cart-panel.open { transform: translateX(0); }
+
+    /* Toast */
+    #toast { transform: translateY(80px); opacity: 0; transition: all 0.4s ease; }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* Nav scrolled */
+    header.scrolled { box-shadow: 0 2px 24px rgba(0,0,0,0.10); }
+
+    /* Strikethrough sale price */
+    .strike { text-decoration: line-through; color: #8A8480; }
+
+    /* Diagonal hero accent */
+    .hero-diag::after {
+      content: '';
+      position: absolute; bottom: -2px; left: 0; right: 0; height: 60px;
+      background: #F2EDE6;
+      clip-path: polygon(0 100%, 100% 0, 100% 100%);
+    }
+
+    /* Color swatch */
+    .swatch { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: none; transition: border-color 0.2s; }
+    .swatch:hover, .swatch.active { border-color: #111111; }
+
+    /* Filter btn */
+    .filter-btn { transition: all 0.2s ease; }
+    .filter-btn.active, .filter-btn:hover { background: #111111; color: #F2EDE6; }
+
+    /* Image zoom on product card */
+    .prod-img-wrap { overflow: hidden; }
+    .prod-img-wrap img { transition: transform 0.5s ease; }
+    .prod-card:hover .prod-img-wrap img { transform: scale(1.06); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #D4CFC8; border-radius: 2px; }
+  </style>
+</head>
+<body class="font-body antialiased">
+
+  <!-- Custom cursor -->
+  <div id="cursor"></div>
+
+  <!-- ═══════════════════ CART OVERLAY ═══════════════════ -->
+  <div id="cart-overlay" class="fixed inset-0 bg-black/40 z-40 hidden opacity-0 transition-opacity duration-300"></div>
+
+  <!-- ═══════════════════ CART PANEL ═══════════════════ -->
+  <aside id="cart-panel" class="fixed top-0 right-0 h-full w-full max-w-sm bg-base z-50 flex flex-col border-l border-border">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-border">
+      <h2 class="font-display text-2xl tracking-wide">YOUR CART</h2>
+      <button id="close-cart" class="text-muted hover:text-ink transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Cart items -->
+    <div id="cart-items" class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <p id="cart-empty" class="text-muted text-sm text-center mt-16">Your cart is empty.</p>
+    </div>
+
+    <!-- Cart footer -->
+    <div class="border-t border-border px-6 py-6">
+      <div class="flex justify-between text-sm font-condensed font-semibold tracking-wide mb-4">
+        <span>SUBTOTAL</span>
+        <span id="cart-total">₱0.00</span>
+      </div>
+      <button class="w-full bg-ink text-base font-display text-xl tracking-widest py-4 hover:bg-red transition-colors duration-300">
+        CHECKOUT
+      </button>
+      <p class="text-muted text-xs text-center mt-3 font-condensed">Free shipping on orders over ₱1,500</p>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════ TOAST ═══════════════════ -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-ink text-base font-condensed text-sm tracking-wide px-6 py-3 flex items-center gap-3">
+    <svg class="w-4 h-4 text-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414L8.414 15l-4.121-4.121a1 1 0 011.414-1.414L8.414 12.172l6.879-6.879a1 1 0 011.414 0z" clip-rule="evenodd"/>
+    </svg>
+    <span id="toast-msg">Added to cart!</span>
+  </div>
+
+  <!-- ═══════════════════ NAVBAR ═══════════════════ -->
+  <header id="navbar" class="sticky top-0 z-30 bg-base/90 backdrop-blur-md border-b border-border transition-shadow duration-300">
+    <nav class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+
+      <!-- Logo -->
+      <a href="#" class="font-display text-4xl tracking-widest leading-none text-ink">DRIP</a>
+
+      <!-- Desktop links -->
+      <ul class="hidden md:flex gap-8 font-condensed text-sm font-semibold tracking-widest uppercase text-muted">
+        <li><a href="#shop"      class="hover:text-ink transition-colors">Shop</a></li>
+        <li><a href="#featured"  class="hover:text-ink transition-colors">Featured</a></li>
+        <li><a href="#about"     class="hover:text-ink transition-colors">About</a></li>
+        <li><a href="#contact"   class="hover:text-ink transition-colors">Contact</a></li>
+      </ul>
+
+      <!-- Icons -->
+      <div class="flex items-center gap-4">
+        <!-- Search -->
+        <div class="hidden md:flex items-center gap-2 border border-border px-3 py-1.5 bg-card">
+          <svg class="w-4 h-4 text-muted" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+          </svg>
+          <input id="search-input" type="text" placeholder="Search tees..." class="bg-transparent text-xs font-condensed tracking-wide outline-none w-32 placeholder:text-muted"/>
+        </div>
+
+        <!-- Cart button -->
+        <button id="open-cart" class="relative group flex items-center gap-2 bg-ink text-base font-condensed font-semibold text-sm tracking-widest uppercase px-4 py-2 hover:bg-red transition-colors duration-300">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
+          </svg>
+          <span>Cart</span>
+          <span id="cart-count" class="absolute -top-2 -right-2 bg-red text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+        </button>
+
+        <!-- Mobile hamburger -->
+        <button id="mob-btn" class="md:hidden text-ink">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Mobile menu -->
+    <div id="mob-menu" class="hidden md:hidden border-t border-border px-6 py-5 flex flex-col gap-4 font-condensed font-semibold text-sm tracking-widest uppercase text-muted">
+      <a href="#shop"     class="hover:text-ink transition-colors">Shop</a>
+      <a href="#featured" class="hover:text-ink transition-colors">Featured</a>
+      <a href="#about"    class="hover:text-ink transition-colors">About</a>
+      <a href="#contact"  class="hover:text-ink transition-colors">Contact</a>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ TICKER ═══════════════════ -->
+  <div class="bg-red text-base py-2 overflow-hidden select-none">
+    <div class="marquee-inner font-display text-sm tracking-widest">
+      <span class="px-8">FREE SHIPPING OVER ₱1,500</span>
+      <span class="px-8">★</span>
+      <span class="px-8">NEW DROP EVERY FRIDAY</span>
+      <span class="px-8">★</span>
+      <span class="px-8">100% COTTON PREMIUM TEES</span>
+      <span class="px-8">★</span>
+      <span class="px-8">USE CODE DRIP20 FOR 20% OFF</span>
+      <span class="px-8">★</span>
+      <span class="px-8">FREE SHIPPING OVER ₱1,500</span>
+      <span class="px-8">★</span>
+      <span class="px-8">NEW DROP EVERY FRIDAY</span>
+      <span class="px-8">★</span>
+      <span class="px-8">100% COTTON PREMIUM TEES</span>
+      <span class="px-8">★</span>
+      <span class="px-8">USE CODE DRIP20 FOR 20% OFF</span>
+      <span class="px-8">★</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ HERO ═══════════════════ -->
+  <section class="hero-diag relative bg-ink text-base overflow-hidden min-h-[90vh] flex items-center">
+    <!-- Background texture -->
+    <div class="absolute inset-0 opacity-5" style="background-image: repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%); background-size: 20px 20px;"></div>
+
+    <!-- Big background text -->
+    <div class="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none select-none">
+      <span class="font-display text-[22vw] text-white/[0.04] leading-none tracking-widest whitespace-nowrap">DRIP DRIP</span>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-6 py-24 w-full grid md:grid-cols-2 gap-16 items-center">
+      <!-- Left text -->
+      <div>
+        <div class="reveal">
+          <span class="font-condensed text-xs tracking-[0.4em] text-red uppercase">2025 Collection</span>
+        </div>
+        <h1 class="reveal font-display text-7xl md:text-9xl leading-none mt-4" style="transition-delay:0.1s">
+          WEAR<br/>YOUR<br/><span class="text-red">STORY.</span>
+        </h1>
+        <p class="reveal font-body text-base/7 text-base/60 max-w-sm mt-6" style="transition-delay:0.2s">
+          Premium heavyweight tees built for the streets. Every design tells a story — find yours.
+        </p>
+        <div class="reveal flex flex-wrap gap-4 mt-10" style="transition-delay:0.3s">
+          <a href="#shop" class="bg-red text-base font-condensed font-semibold tracking-widest uppercase px-8 py-4 text-sm hover:bg-white hover:text-ink transition-all duration-300">
+            Shop Now →
+          </a>
+          <a href="#featured" class="border border-white/30 text-base font-condensed font-semibold tracking-widest uppercase px-8 py-4 text-sm hover:border-white transition-all duration-300">
+            New Arrivals
+          </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="reveal flex gap-10 mt-14 border-t border-white/10 pt-8" style="transition-delay:0.4s">
+          <div>
+            <p class="font-display text-4xl text-red">500+</p>
+            <p class="font-condensed text-xs tracking-widest text-base/50 uppercase mt-1">Happy Customers</p>
+          </div>
+          <div>
+            <p class="font-display text-4xl text-red">48</p>
+            <p class="font-condensed text-xs tracking-widest text-base/50 uppercase mt-1">Unique Designs</p>
+          </div>
+          <div>
+            <p class="font-display text-4xl text-red">100%</p>
+            <p class="font-condensed text-xs tracking-widest text-base/50 uppercase mt-1">Premium Cotton</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: hero product visual -->
+      <div class="reveal hidden md:flex items-center justify-center" style="transition-delay:0.2s">
+        <div class="relative">
+          <!-- T-shirt SVG illustration -->
+          <div class="w-80 h-80 bg-red flex items-center justify-center rotate-3 shadow-2xl">
+            <svg viewBox="0 0 200 200" class="w-64 h-64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- T-shirt shape -->
+              <path d="M60 30 L20 60 L40 75 L40 160 L160 160 L160 75 L180 60 L140 30 Q120 45 100 45 Q80 45 60 30Z" fill="#111111" stroke="#F2EDE6" stroke-width="2"/>
+              <!-- Collar -->
+              <path d="M80 30 Q100 50 120 30" fill="none" stroke="#F2EDE6" stroke-width="2"/>
+              <!-- Design on shirt -->
+              <text x="100" y="105" font-family="'Bebas Neue', sans-serif" font-size="22" fill="#E02020" text-anchor="middle" letter-spacing="4">DRIP</text>
+              <text x="100" y="125" font-family="'Bebas Neue', sans-serif" font-size="10" fill="#F2EDE6" text-anchor="middle" letter-spacing="6" opacity="0.6">COLLECTION</text>
+              <circle cx="100" cy="80" r="14" stroke="#E02020" stroke-width="1.5" fill="none" stroke-dasharray="3 3"/>
+            </svg>
+          </div>
+          <!-- Floating badges -->
+          <div class="absolute -top-4 -right-4 bg-base text-ink font-condensed font-bold text-xs tracking-widest uppercase px-3 py-2 shadow-lg rotate-6">
+            NEW DROP
+          </div>
+          <div class="absolute -bottom-4 -left-4 bg-red text-base font-condensed font-bold text-xs tracking-widest uppercase px-3 py-2 shadow-lg -rotate-3">
+            ₱899
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ CATEGORY STRIP ═══════════════════ -->
+  <section class="max-w-7xl mx-auto px-6 py-12">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="reveal group bg-card border border-border p-6 text-center hover:bg-ink hover:text-base transition-all duration-300" data-filter="all">
+        <div class="text-3xl mb-2">👕</div>
+        <p class="font-condensed font-semibold tracking-widest uppercase text-sm">All Tees</p>
+      </div>
+      <div class="reveal group bg-card border border-border p-6 text-center hover:bg-ink hover:text-base transition-all duration-300" style="transition-delay:0.05s">
+        <div class="text-3xl mb-2">🔥</div>
+        <p class="font-condensed font-semibold tracking-widest uppercase text-sm">Bestsellers</p>
+      </div>
+      <div class="reveal group bg-card border border-border p-6 text-center hover:bg-ink hover:text-base transition-all duration-300" style="transition-delay:0.1s">
+        <div class="text-3xl mb-2">✨</div>
+        <p class="font-condensed font-semibold tracking-widest uppercase text-sm">New Arrivals</p>
+      </div>
+      <div class="reveal group bg-card border border-border p-6 text-center hover:bg-ink hover:text-base transition-all duration-300" style="transition-delay:0.15s">
+        <div class="text-3xl mb-2">💸</div>
+        <p class="font-condensed font-semibold tracking-widest uppercase text-sm">On Sale</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SHOP SECTION ═══════════════════ -->
+  <section id="shop" class="max-w-7xl mx-auto px-6 py-8 pb-24">
+
+    <!-- Section header + filters -->
+    <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+      <div>
+        <span class="font-condensed text-xs tracking-[0.3em] text-red uppercase">The Collection</span>
+        <h2 class="font-display text-5xl md:text-6xl mt-1">SHOP ALL TEES</h2>
+      </div>
+      <!-- Filter buttons -->
+      <div class="flex flex-wrap gap-2" id="filter-bar">
+        <button class="filter-btn active font-condensed text-xs tracking-widest uppercase border border-border px-4 py-2" data-filter="all">All</button>
+        <button class="filter-btn font-condensed text-xs tracking-widest uppercase border border-border px-4 py-2" data-filter="graphic">Graphic</button>
+        <button class="filter-btn font-condensed text-xs tracking-widest uppercase border border-border px-4 py-2" data-filter="plain">Plain</button>
+        <button class="filter-btn font-condensed text-xs tracking-widest uppercase border border-border px-4 py-2" data-filter="vintage">Vintage</button>
+        <button class="filter-btn font-condensed text-xs tracking-widest uppercase border border-border px-4 py-2" data-filter="oversized">Oversized</button>
+      </div>
+    </div>
+
+    <!-- Product grid -->
+    <div id="product-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+
+    <!-- No results -->
+    <p id="no-results" class="hidden text-center text-muted font-condensed tracking-wide py-16">No tees found. Try a different filter.</p>
+  </section>
+
+  <!-- ═══════════════════ FEATURED BANNER ═══════════════════ -->
+  <section id="featured" class="bg-ink text-base py-24">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="reveal grid md:grid-cols-2 gap-16 items-center">
+        <div>
+          <span class="font-condensed text-xs tracking-[0.3em] text-red uppercase">Limited Drop</span>
+          <h2 class="font-display text-6xl md:text-7xl mt-3 mb-6 leading-none">
+            THE<br/><span class="text-red">BLACKOUT</span><br/>TEE
+          </h2>
+          <p class="text-base/60 leading-relaxed mb-8 max-w-sm">
+            Our most requested silhouette. Heavyweight 280gsm cotton, dropped shoulders, and a logo that speaks before you do. Only 50 pieces available.
+          </p>
+          <div class="flex items-center gap-4 mb-8">
+            <span class="font-display text-4xl text-red">₱1,299</span>
+            <span class="strike font-condensed">₱1,599</span>
+            <span class="bg-red text-base font-condensed font-bold text-xs px-3 py-1">SAVE 19%</span>
+          </div>
+          <!-- Size picker -->
+          <div class="flex gap-2 mb-8">
+            <button class="size-btn border border-border font-condensed text-xs font-semibold tracking-widest uppercase px-4 py-2">XS</button>
+            <button class="size-btn active border border-border font-condensed text-xs font-semibold tracking-widest uppercase px-4 py-2">S</button>
+            <button class="size-btn border border-border font-condensed text-xs font-semibold tracking-widest uppercase px-4 py-2">M</button>
+            <button class="size-btn border border-border font-condensed text-xs font-semibold tracking-widest uppercase px-4 py-2">L</button>
+            <button class="size-btn border border-border font-condensed text-xs font-semibold tracking-widest uppercase px-4 py-2">XL</button>
+          </div>
+          <button onclick="addToCart('Blackout Tee', 1299, 'bg-ink')"
+                  class="bg-red text-base font-condensed font-bold tracking-widest uppercase px-8 py-4 text-sm hover:bg-white hover:text-ink transition-all duration-300">
+            Add to Cart — ₱1,299
+          </button>
+        </div>
+
+        <!-- Product showcase -->
+        <div class="flex items-center justify-center">
+          <div class="relative w-72 h-72 bg-[#1a1a1a] flex items-center justify-center shadow-2xl">
+            <svg viewBox="0 0 200 200" class="w-56 h-56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M60 30 L20 60 L40 75 L40 160 L160 160 L160 75 L180 60 L140 30 Q120 45 100 45 Q80 45 60 30Z" fill="#000000" stroke="#333" stroke-width="2"/>
+              <path d="M80 30 Q100 50 120 30" fill="none" stroke="#333" stroke-width="2"/>
+              <text x="100" y="115" font-family="'Bebas Neue', sans-serif" font-size="28" fill="#E02020" text-anchor="middle" letter-spacing="6">DRIP</text>
+            </svg>
+            <div class="absolute inset-0 border border-red/30"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ ABOUT ═══════════════════ -->
+  <section id="about" class="max-w-7xl mx-auto px-6 py-24">
+    <div class="reveal grid md:grid-cols-3 gap-10">
+      <div>
+        <div class="w-12 h-1 bg-red mb-5"></div>
+        <h3 class="font-display text-3xl mb-3">PREMIUM QUALITY</h3>
+        <p class="text-muted font-body text-sm leading-relaxed">Every DRIP tee is made from 100% combed ring-spun cotton — heavy, soft, and built to outlast the trends.</p>
+      </div>
+      <div style="transition-delay:0.1s" class="reveal">
+        <div class="w-12 h-1 bg-red mb-5"></div>
+        <h3 class="font-display text-3xl mb-3">LOCAL BRAND</h3>
+        <p class="text-muted font-body text-sm leading-relaxed">Based in the Philippines. Designed for the streets. Every peso supports local artists and ethical production.</p>
+      </div>
+      <div style="transition-delay:0.2s" class="reveal">
+        <div class="w-12 h-1 bg-red mb-5"></div>
+        <h3 class="font-display text-3xl mb-3">FAST SHIPPING</h3>
+        <p class="text-muted font-body text-sm leading-relaxed">Metro Manila: 1–2 days. Nationwide: 3–5 days. Free shipping on all orders over ₱1,500.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ NEWSLETTER ═══════════════════ -->
+  <section class="bg-red text-base py-20">
+    <div class="max-w-3xl mx-auto px-6 text-center reveal">
+      <h2 class="font-display text-5xl md:text-6xl mb-4">GET EARLY ACCESS</h2>
+      <p class="font-condensed tracking-wide mb-8 opacity-80">Drop alerts, exclusive discounts, and behind-the-scenes — straight to your inbox.</p>
+      <div class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+        <input type="email" placeholder="your@email.com"
+               class="flex-1 bg-white/10 border border-white/30 text-base placeholder:text-base/50 font-condensed tracking-wide px-4 py-3 text-sm outline-none focus:border-white transition-colors"/>
+        <button class="bg-ink text-base font-condensed font-bold tracking-widest uppercase px-6 py-3 text-sm hover:bg-white hover:text-ink transition-all duration-300">
+          Subscribe
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ CONTACT ═══════════════════ -->
+  <section id="contact" class="max-w-7xl mx-auto px-6 py-24">
+    <div class="reveal grid md:grid-cols-2 gap-16 items-start">
+      <div>
+        <span class="font-condensed text-xs tracking-[0.3em] text-red uppercase">Reach Us</span>
+        <h2 class="font-display text-5xl mt-2 mb-6">GET IN TOUCH</h2>
+        <div class="space-y-4 text-muted font-body text-sm leading-relaxed">
+          <p>📍 Zamboanga del Sur, Philippines</p>
+          <p>📧 hello@dripshop.ph</p>
+          <p>📱 +63 912 345 6789</p>
+          <p>🕐 Mon–Sat, 9AM–6PM PHT</p>
+        </div>
+        <div class="flex gap-4 mt-8">
+          <a href="#" class="font-condensed text-xs tracking-widest uppercase border border-border px-4 py-2 hover:bg-ink hover:text-base hover:border-ink transition-all">Instagram</a>
+          <a href="#" class="font-condensed text-xs tracking-widest uppercase border border-border px-4 py-2 hover:bg-ink hover:text-base hover:border-ink transition-all">Facebook</a>
+          <a href="#" class="font-condensed text-xs tracking-widest uppercase border border-border px-4 py-2 hover:bg-ink hover:text-base hover:border-ink transition-all">TikTok</a>
+        </div>
+      </div>
+
+      <!-- Contact form -->
+      <div class="reveal" style="transition-delay:0.1s">
+        <div class="space-y-4">
+          <input type="text" placeholder="Your Name" class="w-full bg-card border border-border px-4 py-3 font-condensed text-sm tracking-wide outline-none focus:border-ink transition-colors"/>
+          <input type="email" placeholder="Your Email" class="w-full bg-card border border-border px-4 py-3 font-condensed text-sm tracking-wide outline-none focus:border-ink transition-colors"/>
+          <textarea rows="4" placeholder="Your Message" class="w-full bg-card border border-border px-4 py-3 font-condensed text-sm tracking-wide outline-none focus:border-ink transition-colors resize-none"></textarea>
+          <button class="w-full bg-ink text-base font-display text-2xl tracking-widest py-4 hover:bg-red transition-colors duration-300">
+            SEND MESSAGE
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ FOOTER ═══════════════════ -->
+  <footer class="bg-ink text-base border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6 py-10">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <p class="font-display text-3xl tracking-widest text-red mb-1">DRIP</p>
+          <p class="font-condensed text-xs tracking-widest text-base/40 uppercase">Premium Tee Shop · Philippines</p>
+        </div>
+        <div class="flex flex-wrap gap-6 font-condensed text-xs tracking-widest uppercase text-base/50">
+          <a href="#" class="hover:text-base transition-colors">Shop</a>
+          <a href="#" class="hover:text-base transition-colors">About</a>
+          <a href="#" class="hover:text-base transition-colors">Sizing Guide</a>
+          <a href="#" class="hover:text-base transition-colors">Returns</a>
+          <a href="#" class="hover:text-base transition-colors">Privacy</a>
+        </div>
+        <p class="font-condensed text-xs text-base/30 tracking-wide">© 2025 DRIP. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+  <script>
+    // ── PRODUCT DATA ──
+    const products = [
+      { id:1, name:'Classic White Drip Tee',     price:799,  original:null, tag:'NEW',  category:'graphic',   colors:['#FFFFFF','#E5E5E5'],       emoji:'🤍' },
+      { id:2, name:'Street Ink Black',            price:849,  original:null, tag:'',     category:'graphic',   colors:['#111111','#333333'],       emoji:'🖤' },
+      { id:3, name:'Vintage Wash Olive',          price:949,  original:1199, tag:'SALE', category:'vintage',   colors:['#6B7C55','#8A9968'],       emoji:'🌿' },
+      { id:4, name:'Oversized Cream Box Tee',     price:1099, original:null, tag:'HOT',  category:'oversized', colors:['#F5E6C8','#EDD89A'],       emoji:'🌾' },
+      { id:5, name:'Red Logo Tee',                price:899,  original:null, tag:'NEW',  category:'graphic',   colors:['#E02020','#CC0000'],       emoji:'❤️' },
+      { id:6, name:'Plain Navy Essential',        price:699,  original:799,  tag:'SALE', category:'plain',     colors:['#1B2A4A','#243660'],       emoji:'💙' },
+      { id:7, name:'Washed Brown Vintage',        price:999,  original:null, tag:'',     category:'vintage',   colors:['#8B5E3C','#A06D47'],       emoji:'🤎' },
+      { id:8, name:'Oversized Tie-Dye Drop',      price:1149, original:1399, tag:'SALE', category:'oversized', colors:['#9B5DE5','#F15BB5'],       emoji:'🌈' },
+      { id:9, name:'Forest Green Plain Tee',      price:749,  original:null, tag:'',     category:'plain',     colors:['#2D6A4F','#40916C'],       emoji:'💚' },
+      { id:10,name:'Acid Wash Graphic Tee',       price:1049, original:null, tag:'HOT',  category:'graphic',   colors:['#555555','#888888'],       emoji:'🩶' },
+      { id:11,name:'Heritage Striped Tee',        price:879,  original:null, tag:'NEW',  category:'vintage',   colors:['#1A1A2E','#E94560'],       emoji:'🔵' },
+      { id:12,name:'Boxy White Oversized',        price:1199, original:1499, tag:'SALE', category:'oversized', colors:['#FAFAFA','#DDDDDD'],       emoji:'🤍' },
+    ];
+
+    // ── CART STATE ──
+    let cart = [];
+
+    // ── RENDER PRODUCTS ──
+    function renderProducts(filter = 'all') {
+      const grid = document.getElementById('product-grid');
+      const noResults = document.getElementById('no-results');
+      const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
+
+      // Search filter
+      const q = document.getElementById('search-input').value.toLowerCase();
+      const searched = q ? filtered.filter(p => p.name.toLowerCase().includes(q)) : filtered;
+
+      if (searched.length === 0) {
+        grid.innerHTML = '';
+        noResults.classList.remove('hidden');
+        return;
+      }
+      noResults.classList.add('hidden');
+
+      grid.innerHTML = searched.map((p, i) => `
+        <div class="prod-card reveal bg-card border border-border flex flex-col overflow-hidden" style="transition-delay:${i * 0.05}s">
+
+          <!-- Product image area -->
+          <div class="prod-img-wrap relative bg-gradient-to-br from-[${p.colors[0]}22] to-[${p.colors[1]}44] aspect-square flex items-center justify-center select-none">
+            <!-- T-shirt SVG with product color -->
+            <svg viewBox="0 0 200 200" class="w-36 h-36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M60 30 L20 60 L40 75 L40 160 L160 160 L160 75 L180 60 L140 30 Q120 45 100 45 Q80 45 60 30Z" fill="${p.colors[0]}" stroke="${p.colors[1]}" stroke-width="2"/>
+              <path d="M80 30 Q100 50 120 30" fill="none" stroke="${p.colors[1]}" stroke-width="2"/>
+              <text x="100" y="108" font-family="'Bebas Neue',sans-serif" font-size="16" fill="#E02020" text-anchor="middle" letter-spacing="3">DRIP</text>
+            </svg>
+
+            <!-- Tag badge -->
+            ${p.tag ? `<div class="absolute top-3 left-3 ${p.tag==='SALE'?'bg-red':'bg-ink'} text-base font-condensed font-bold text-xs tracking-widest px-2 py-1">${p.tag}</div>` : ''}
+
+            <!-- Quick add (appears on hover) -->
+            <div class="quick-add absolute bottom-0 left-0 right-0 bg-ink/90 text-base py-3 text-center font-condensed font-bold text-xs tracking-widest uppercase">
+              <button onclick="addToCart('${p.name.replace(/'/g,"\\'")}', ${p.price}, '${p.colors[0]}')" class="w-full">
+                + Quick Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Product info -->
+          <div class="p-4 flex flex-col gap-2 flex-1">
+            <!-- Color swatches -->
+            <div class="flex gap-1.5">
+              ${p.colors.map((c,ci) => `<div class="swatch ${ci===0?'active':''}" style="background:${c}" title="${c}"></div>`).join('')}
+            </div>
+            <h3 class="font-condensed font-semibold tracking-wide text-sm leading-tight">${p.name}</h3>
+            <div class="flex items-center gap-2 mt-auto pt-2">
+              <span class="font-display text-xl">₱${p.price.toLocaleString()}</span>
+              ${p.original ? `<span class="strike font-condensed text-xs">₱${p.original.toLocaleString()}</span>` : ''}
+            </div>
+            <!-- Size row + add button -->
+            <div class="flex items-center justify-between gap-2 mt-2">
+              <div class="flex gap-1">
+                ${['S','M','L','XL'].map(s=>`<button class="size-btn border border-border font-condensed text-xs px-2 py-1">${s}</button>`).join('')}
+              </div>
+              <button onclick="addToCart('${p.name.replace(/'/g,"\\'")}', ${p.price}, '${p.colors[0]}')"
+                      class="bg-ink text-base font-condensed font-bold text-xs tracking-widest uppercase px-3 py-2 hover:bg-red transition-colors duration-200 flex-shrink-0">
+                ADD
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // Observe newly rendered cards
+      grid.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }
+
+    // ── ADD TO CART ──
+    function addToCart(name, price, color) {
+      const existing = cart.find(i => i.name === name);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({ name, price, color, qty: 1 });
+      }
+      updateCart();
+      showToast(`${name} added to cart!`);
+    }
+
+    // ── UPDATE CART UI ──
+    function updateCart() {
+      const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      const count = cart.reduce((s, i) => s + i.qty, 0);
+
+      document.getElementById('cart-total').textContent = `₱${total.toLocaleString()}.00`;
+
+      const countEl = document.getElementById('cart-count');
+      if (count > 0) {
+        countEl.textContent = count;
+        countEl.classList.remove('hidden');
+      } else {
+        countEl.classList.add('hidden');
+      }
+
+      const itemsEl = document.getElementById('cart-items');
+      const emptyEl = document.getElementById('cart-empty');
+
+      if (cart.length === 0) {
+        emptyEl.classList.remove('hidden');
+        itemsEl.innerHTML = '';
+        itemsEl.appendChild(emptyEl);
+        return;
+      }
+
+      emptyEl.classList.add('hidden');
+      itemsEl.innerHTML = cart.map((item, idx) => `
+        <div class="flex items-center gap-4 border-b border-border pb-4">
+          <div class="w-12 h-12 flex-shrink-0 flex items-center justify-center" style="background:${item.color}22; border:1px solid ${item.color}44">
+            <span class="text-xl">👕</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-condensed font-semibold text-sm tracking-wide truncate">${item.name}</p>
+            <p class="font-condensed text-xs text-muted">₱${item.price.toLocaleString()} × ${item.qty}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="changeQty(${idx}, -1)" class="w-6 h-6 border border-border flex items-center justify-center font-bold text-sm hover:bg-ink hover:text-base transition-colors">−</button>
+            <span class="font-condensed text-sm w-4 text-center">${item.qty}</span>
+            <button onclick="changeQty(${idx}, 1)"  class="w-6 h-6 border border-border flex items-center justify-center font-bold text-sm hover:bg-ink hover:text-base transition-colors">+</button>
+          </div>
+          <button onclick="removeItem(${idx})" class="text-muted hover:text-red transition-colors ml-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      `).join('');
+      itemsEl.appendChild(emptyEl);
+    }
+
+    function changeQty(idx, delta) {
+      cart[idx].qty += delta;
+      if (cart[idx].qty <= 0) cart.splice(idx, 1);
+      updateCart();
+    }
+
+    function removeItem(idx) {
+      cart.splice(idx, 1);
+      updateCart();
+    }
+
+    // ── TOAST ──
+    let toastTimer;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // ── CART OPEN/CLOSE ──
+    const cartPanel   = document.getElementById('cart-panel');
+    const cartOverlay = document.getElementById('cart-overlay');
+
+    function openCart() {
+      cartPanel.classList.add('open');
+      cartOverlay.classList.remove('hidden');
+      setTimeout(() => cartOverlay.classList.add('opacity-100'), 10);
+    }
+    function closeCart() {
+      cartPanel.classList.remove('open');
+      cartOverlay.classList.remove('opacity-100');
+      setTimeout(() => cartOverlay.classList.add('hidden'), 300);
+    }
+
+    document.getElementById('open-cart').addEventListener('click', openCart);
+    document.getElementById('close-cart').addEventListener('click', closeCart);
+    cartOverlay.addEventListener('click', closeCart);
+
+    // ── FILTER ──
+    let activeFilter = 'all';
+    document.getElementById('filter-bar').addEventListener('click', e => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderProducts(activeFilter);
+    });
+
+    // ── SEARCH ──
+    document.getElementById('search-input').addEventListener('input', () => renderProducts(activeFilter));
+
+    // ── SCROLL REVEAL ──
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ── NAVBAR SHADOW ON SCROLL ──
+    window.addEventListener('scroll', () => {
+      document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 10);
+    });
+
+    // ── MOBILE MENU ──
+    document.getElementById('mob-btn').addEventListener('click', () => {
+      document.getElementById('mob-menu').classList.toggle('hidden');
+    });
+
+    // ── SMOOTH SCROLL ──
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const t = document.querySelector(a.getAttribute('href'));
+        if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+      });
+    });
+
+    // ── CUSTOM CURSOR ──
+    const cursor = document.getElementById('cursor');
+    document.addEventListener('mousemove', e => {
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top  = e.clientY + 'px';
+    });
+    document.querySelectorAll('a, button, input, .prod-card, .swatch').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
+    });
+
+    // ── SIZE BUTTONS (featured section) ──
+    document.querySelectorAll('.size-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const group = this.closest('div');
+        group.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // ── INIT ──
+    renderProducts();
+    updateCart();
+  </script>
+</body>
+</html>
